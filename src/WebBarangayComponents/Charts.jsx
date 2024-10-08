@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -9,6 +9,8 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import ReportService from "../Quirries";
+import _ from "lodash";
 
 ChartJS.register(
   CategoryScale,
@@ -19,40 +21,56 @@ ChartJS.register(
   Legend
 );
 
+const reportService = new ReportService();
+
 const StatisticsChart = () => {
-  // Sample data for Complain, Incident, and Emergency
+  const [reportsPerMonth, setReportsPerMonth] = useState([]);
+  const [datasets, setDatasets] = useState([]);
+  const [labels, setLabels] = useState([]);
+
+  const reportTypes = ["Incident", "Complain", "Emergency"];
+
+  const colors = {
+    Incident: "rgba(0, 0, 255, 0.6)", // Blue with opacity
+    Complain: "rgba(0, 255, 0, 0.6)", // Green with opacity
+    Emergency: "rgba(255, 0, 0, 0.6)", // Red with opacity
+  };
+
+  const borderColors = {
+    Incident: "rgba(0, 0, 255, 1)", // Solid blue border
+    Complain: "rgba(0, 255, 0, 1)", // Solid green border
+    Emergency: "rgba(255, 0, 0, 1)", // Solid red border
+  };
+
+  useEffect(() => {
+    reportService.getReportsCountByType().then((reports) => {
+      console.log("reports", reports);
+      setReportsPerMonth(reports);
+      setLabels(Object.keys(reports));
+      setDatasets(
+        reportTypes.map((type) => {
+          return {
+            label: type,
+            data: Object.keys(reports).map(
+              (month) => reports[month][type] || 0
+            ),
+            backgroundColor: colors[type],
+            borderColor: borderColors[type],
+            borderWidth: 2,
+            borderRadius: 10, // Make bars rounded
+            hoverBackgroundColor: borderColors[type], // Brighten the hover state
+            hoverBorderColor: "black", // Add a dark border on hover
+            hoverBorderWidth: 3,
+            barPercentage: 0.7, // Adjust bar width
+          };
+        })
+      );
+    });
+  }, []);
+
   const data = {
-    labels: [
-      "January 1, 2024 - 10:00 AM",
-      "February 2, 2024 - 11:30 AM",
-      "March 3, 2024 - 1:15 PM",
-      "April 4, 2024 - 2:45 PM",
-      "May 5, 2024 - 3:30 PM",
-      "June 6, 2024 - 4:00 PM",
-    ],
-    datasets: [
-      {
-        label: "Complain",
-        data: [20, 15, 30, 25, 10, 5], // Example data
-        backgroundColor: "rgba(255, 255, 0, 0.6)", // Yellow
-        borderColor: "rgba(255, 255, 0, 1)",
-        borderWidth: 1,
-      },
-      {
-        label: "Incident",
-        data: [15, 30, 25, 35, 20, 10], // Example data
-        backgroundColor: "rgba(255, 0, 0, 0.6)", // Red
-        borderColor: "rgba(255, 0, 0, 1)",
-        borderWidth: 1,
-      },
-      {
-        label: "Emergency",
-        data: [5, 10, 15, 20, 25, 30], // Example data
-        backgroundColor: "rgba(0, 0, 255, 0.6)", // Blue
-        borderColor: "rgba(0, 0, 255, 1)",
-        borderWidth: 1,
-      },
-    ],
+    labels: labels,
+    datasets: datasets,
   };
 
   const options = {
@@ -60,15 +78,66 @@ const StatisticsChart = () => {
     plugins: {
       legend: {
         position: "top",
+        labels: {
+          font: {
+            size: 14, // Increase font size for readability
+            weight: "bold", // Bold font for legend labels
+          },
+          color: "#333", // Darker legend text color
+        },
       },
       title: {
         display: true,
-        text: "Monthly Report by Type",
+        text: "Monthly Reports Count",
+        font: {
+          size: 18, // Larger title font
+          weight: "bold",
+        },
+        color: "#333", // Darker title color
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            return `${context.dataset.label}: ${context.raw}`; // Corrected syntax for string concatenation
+          },
+        },
+        backgroundColor: "rgba(0, 0, 0, 0.7)", // Darken the tooltip background
+        titleFont: {
+          size: 16,
+        },
+        bodyFont: {
+          size: 14,
+        },
       },
     },
     scales: {
+      x: {
+        grid: {
+          display: false, // Remove gridlines on X-axis
+        },
+        ticks: {
+          font: {
+            size: 14,
+          },
+        },
+      },
       y: {
-        beginAtZero: true,
+        grid: {
+          color: "rgba(200, 200, 200, 0.5)", // Lighten the gridlines
+        },
+        ticks: {
+          font: {
+            size: 14,
+          },
+        },
+      },
+    },
+    layout: {
+      padding: {
+        left: 20,
+        right: 20,
+        top: 10,
+        bottom: 10,
       },
     },
   };
